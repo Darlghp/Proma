@@ -1,0 +1,6 @@
+{
+  "name": "PRO - Partido PROMA",
+  "description": "Portal oficial do Partido PROMA (PRO): diretrizes programáticas, filiação digital, simulador eleitoral, lideranças e notícias.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
