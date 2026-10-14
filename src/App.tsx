@@ -8,8 +8,11 @@ import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ElectronicBallotSimulator } from './components/ElectronicBallotSimulator';
 import { MembershipSimulator } from './components/MembershipSimulator';
+import { AlignmentQuiz } from './components/AlignmentQuiz';
+import { ImpactCalculator } from './components/ImpactCalculator';
 import { ManifestoSection } from './components/ManifestoSection';
 import { LeadershipSection } from './components/LeadershipSection';
+import { CampaignKitsSection } from './components/CampaignKitsSection';
 import { StateChaptersDirectory } from './components/StateChaptersDirectory';
 import { NewsSection } from './components/NewsSection';
 import { DonationSimulator } from './components/DonationSimulator';
@@ -69,12 +72,34 @@ export default function App() {
           <Hero onNavigate={handleNavigate} />
         </div>
         
-        <ManifestoSection />
+        {/* Urna Eletrônica 77 */}
         <ElectronicBallotSimulator />
+
+        {/* Filiação Digital com Download de Carteirinha em PNG */}
         <MembershipSimulator />
+
+        {/* Quiz de Alinhamento Cívico */}
+        <AlignmentQuiz onAffiliateClick={() => handleNavigate('filiacao')} />
+
+        {/* Calculadora de Impacto Cidadão */}
+        <ImpactCalculator onAffiliateClick={() => handleNavigate('filiacao')} />
+
+        {/* Manifesto e Eixos Programáticos */}
+        <ManifestoSection />
+
+        {/* Lideranças Nacionais */}
         <LeadershipSection />
+
+        {/* Central de Materiais de Campanha & Jingle */}
+        <CampaignKitsSection />
+
+        {/* Comunicados e Notícias Oficiais */}
         <NewsSection />
+
+        {/* Financiamento Cidadão via Pix */}
         <DonationSimulator />
+
+        {/* Diretórios nos 27 Estados */}
         <StateChaptersDirectory />
       </main>
 

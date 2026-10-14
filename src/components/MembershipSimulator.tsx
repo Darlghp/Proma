@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PartyLogo } from './PartyLogo';
-import { CheckCircle2, QrCode, Download, Copy, Check, RefreshCw, UserCheck } from 'lucide-react';
+import { CheckCircle2, QrCode, Download, Copy, Check, RefreshCw, UserCheck, Upload, Share2, Sparkles } from 'lucide-react';
 
 interface MemberProfile {
   name: string;
@@ -11,6 +11,7 @@ interface MemberProfile {
   memberId: string;
   issueDate: string;
   hash: string;
+  avatarUrl?: string;
 }
 
 export const MembershipSimulator: React.FC = () => {
@@ -22,21 +23,39 @@ export const MembershipSimulator: React.FC = () => {
     nucleo: 'Inovação, Tecnologia & Liberdade Econômica',
   });
 
+  const [avatar, setAvatar] = useState<string>('');
   const [affiliatedMember, setAffiliatedMember] = useState<MemberProfile | null>(null);
   const [copiedId, setCopiedId] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [downloadingPng, setDownloadingPng] = useState(false);
+  const cardElementRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage if previously affiliated
   useEffect(() => {
     const saved = localStorage.getItem('proma_member_profile');
     if (saved) {
       try {
-        setAffiliatedMember(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setAffiliatedMember(parsed);
+        if (parsed.avatarUrl) setAvatar(parsed.avatarUrl);
       } catch {
         // fallback
       }
     }
   }, []);
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        if (uploadEvent.target?.result) {
+          setAvatar(uploadEvent.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +75,7 @@ export const MembershipSimulator: React.FC = () => {
       memberId,
       issueDate,
       hash,
+      avatarUrl: avatar || undefined,
     };
 
     setAffiliatedMember(newProfile);
@@ -64,6 +84,7 @@ export const MembershipSimulator: React.FC = () => {
 
   const handleReset = () => {
     setAffiliatedMember(null);
+    setAvatar('');
     localStorage.removeItem('proma_member_profile');
   };
 
@@ -74,8 +95,139 @@ export const MembershipSimulator: React.FC = () => {
     setTimeout(() => setCopiedId(false), 2000);
   };
 
-  const handlePrintCard = () => {
-    window.print();
+  // Direct HTML5 Canvas PNG Generator and download
+  const handleDownloadPng = () => {
+    if (!affiliatedMember) return;
+    setDownloadingPng(true);
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 900;
+      canvas.height = 540;
+      const ctx = canvas.getContext('2d');
+
+      if (ctx) {
+        // Background gradient
+        const bgGrad = ctx.createLinearGradient(0, 0, 900, 540);
+        bgGrad.addColorStop(0, '#0a0a0a');
+        bgGrad.addColorStop(0.5, '#171717');
+        bgGrad.addColorStop(1, '#0a0a0a');
+        ctx.fillStyle = bgGrad;
+        ctx.roundRect(0, 0, 900, 540, 24);
+        ctx.fill();
+
+        // Border
+        ctx.strokeStyle = '#404040';
+        ctx.lineWidth = 4;
+        ctx.roundRect(0, 0, 900, 540, 24);
+        ctx.stroke();
+
+        // Header bar
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillText('PRO', 45, 65);
+
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillStyle = '#a3a3a3';
+        ctx.fillText('PARTIDO PROMA · NÚMERO 77', 135, 52);
+        ctx.fillText('CARTEIRA NACIONAL DE FILIADO', 135, 75);
+
+        // Member ID in top right
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(affiliatedMember.memberId, 855, 60);
+        ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#737373';
+        ctx.fillText('REGISTRO OFICIAL HOMOLOGADO', 855, 80);
+        ctx.textAlign = 'left';
+
+        // Divider
+        ctx.strokeStyle = '#262626';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(45, 105);
+        ctx.lineTo(855, 105);
+        ctx.stroke();
+
+        // Member Details
+        ctx.fillStyle = '#a3a3a3';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('NOME DO FILIADO(A)', 45, 150);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText(affiliatedMember.name, 45, 190);
+
+        ctx.fillStyle = '#a3a3a3';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('DIRETÓRIO / LOCALIDADE', 45, 245);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText(`${affiliatedMember.city} - ${affiliatedMember.uf}`, 45, 275);
+
+        ctx.fillStyle = '#a3a3a3';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('NÚCLEO PROGRAMÁTICO', 45, 330);
+        ctx.fillStyle = '#e5e5e5';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(affiliatedMember.nucleo, 45, 360);
+
+        ctx.fillStyle = '#a3a3a3';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('DATA DE EMISSÃO', 45, 415);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText(affiliatedMember.issueDate, 45, 440);
+
+        // QR Code Simulated Box on right
+        ctx.fillStyle = '#ffffff';
+        ctx.roundRect(675, 140, 180, 180, 16);
+        ctx.fill();
+
+        ctx.fillStyle = '#0a0a0a';
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('PRO 77', 765, 220);
+        ctx.font = '10px monospace';
+        ctx.fillText('QR CODE TSE', 765, 245);
+        ctx.fillText('AUTENTICADO', 765, 265);
+        ctx.textAlign = 'left';
+
+        // Bottom Footer
+        ctx.beginPath();
+        ctx.moveTo(45, 475);
+        ctx.lineTo(855, 475);
+        ctx.stroke();
+
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('✔ STATUS: FILIAÇÃO ATIVA & HOMOLOGADA', 45, 510);
+
+        ctx.fillStyle = '#737373';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(`HASH: ${affiliatedMember.hash}`, 855, 510);
+
+        // Trigger Download
+        const link = document.createElement('a');
+        link.download = `carteirinha-proma-77-${affiliatedMember.uf}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
+    } catch {
+      // Fallback to print
+      window.print();
+    } finally {
+      setTimeout(() => setDownloadingPng(false), 500);
+    }
+  };
+
+  const handleShareCard = () => {
+    if (!affiliatedMember) return;
+    const msg = `Acabo de homologar minha filiação oficial no Partido PROMA (PRO 77)! Matrícula: ${affiliatedMember.memberId}. Faça parte da renovação política.`;
+    navigator.clipboard?.writeText(msg);
+    alert('Mensagem oficial copiada para envio no WhatsApp e redes!');
   };
 
   const brazilianStates = [
@@ -152,6 +304,35 @@ export const MembershipSimulator: React.FC = () => {
                 />
               </div>
 
+              {/* Photo Upload Option */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-1.5">
+                  Foto para a Carteirinha (Opcional)
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3.5 py-2 bg-neutral-950 border border-neutral-700 hover:border-neutral-500 rounded-lg text-xs font-medium text-neutral-300 hover:text-white transition-colors inline-flex items-center gap-2"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{avatar ? 'Alterar Foto' : 'Carregar Imagem'}</span>
+                  </button>
+                  {avatar && (
+                    <span className="text-xs text-emerald-400 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" /> Foto carregada
+                    </span>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-1.5">
@@ -224,9 +405,12 @@ export const MembershipSimulator: React.FC = () => {
                 
                 {/* The Physical-Style Digital Membership Card */}
                 <div
-                  ref={cardRef}
-                  className="relative w-full max-w-xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 border-2 border-neutral-700 p-6 sm:p-8 shadow-2xl text-white select-none"
+                  ref={cardElementRef}
+                  className="relative w-full max-w-xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 border-2 border-neutral-700 p-6 sm:p-8 shadow-2xl text-white select-none transition-transform hover:scale-[1.01]"
                 >
+                  {/* Subtle Holographic Accent Header */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neutral-500 via-white to-neutral-500 opacity-60" />
+
                   {/* Watermark Eagle background in card */}
                   <div className="absolute right-4 -bottom-10 opacity-10 pointer-events-none">
                     <PartyLogo size="xl" variant="emblem-only" inverted={true} />
@@ -248,8 +432,22 @@ export const MembershipSimulator: React.FC = () => {
                   </div>
 
                   {/* Card Body */}
-                  <div className="grid grid-cols-3 gap-6 py-6 items-center">
-                    <div className="col-span-2 space-y-3">
+                  <div className="grid grid-cols-12 gap-6 py-6 items-center">
+                    
+                    {/* User Avatar if present */}
+                    {affiliatedMember.avatarUrl && (
+                      <div className="col-span-3">
+                        <div className="w-20 h-24 rounded-lg overflow-hidden border-2 border-neutral-700 bg-neutral-950 shadow-md">
+                          <img
+                            src={affiliatedMember.avatarUrl}
+                            alt="Foto do filiado"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={`${affiliatedMember.avatarUrl ? 'col-span-6' : 'col-span-8'} space-y-3`}>
                       <div>
                         <div className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">
                           FILIADO(A)
@@ -290,8 +488,8 @@ export const MembershipSimulator: React.FC = () => {
                     </div>
 
                     {/* QR Code Validation Box */}
-                    <div className="flex flex-col items-center justify-center p-3 bg-white text-neutral-950 rounded-xl shadow-md border border-neutral-300">
-                      <QrCode className="w-20 h-20 text-neutral-950" />
+                    <div className={`${affiliatedMember.avatarUrl ? 'col-span-3' : 'col-span-4'} flex flex-col items-center justify-center p-3 bg-white text-neutral-950 rounded-xl shadow-md border border-neutral-300`}>
+                      <QrCode className="w-16 h-16 text-neutral-950" />
                       <div className="text-[8px] font-mono font-bold tracking-tighter text-center uppercase mt-1">
                         VALIDAÇÃO TSE
                       </div>
@@ -311,7 +509,16 @@ export const MembershipSimulator: React.FC = () => {
                 </div>
 
                 {/* Card Management Actions */}
-                <div className="flex flex-wrap items-center justify-center gap-4 max-w-xl mx-auto">
+                <div className="flex flex-wrap items-center justify-center gap-3 max-w-xl mx-auto">
+                  <button
+                    onClick={handleDownloadPng}
+                    disabled={downloadingPng}
+                    className="px-4 py-2.5 bg-white text-neutral-950 rounded-lg text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2 hover:bg-neutral-200 transition-colors shadow-md disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{downloadingPng ? 'Gerando Imagem...' : 'Baixar Carteirinha (PNG)'}</span>
+                  </button>
+
                   <button
                     onClick={handleCopyId}
                     className="px-4 py-2.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 rounded-lg text-xs font-bold uppercase tracking-wider text-white inline-flex items-center gap-2 hover:bg-neutral-800 transition-colors"
@@ -321,16 +528,16 @@ export const MembershipSimulator: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={handlePrintCard}
+                    onClick={handleShareCard}
                     className="px-4 py-2.5 bg-neutral-900 border border-neutral-700 hover:border-neutral-500 rounded-lg text-xs font-bold uppercase tracking-wider text-white inline-flex items-center gap-2 hover:bg-neutral-800 transition-colors"
                   >
-                    <Download className="w-4 h-4 text-neutral-400" />
-                    <span>Imprimir / Salvar PDF</span>
+                    <Share2 className="w-4 h-4 text-neutral-400" />
+                    <span>Compartilhar</span>
                   </button>
 
                   <button
                     onClick={handleReset}
-                    className="px-4 py-2.5 text-neutral-400 hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                    className="px-3 py-2.5 text-neutral-400 hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Novo Cadastro</span>

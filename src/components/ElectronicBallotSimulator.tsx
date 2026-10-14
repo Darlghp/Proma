@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PartyLogo } from './PartyLogo';
 import { Check, RotateCcw, Volume2, VolumeX, Shield, Award } from 'lucide-react';
+import { playKeypadBeep, playUrnaConfirmationTone } from '../utils/audio';
 
 interface CandidateData {
   digits: number;
@@ -22,70 +23,14 @@ export const ElectronicBallotSimulator: React.FC = () => {
   const [voteCount, setVoteCount] = useState<number>(1429);
   const [showProofModal, setShowProofModal] = useState<boolean>(false);
 
-  // Audio Context Ref for synthesized TSE urna sounds
-  const audioCtxRef = useRef<AudioContext | null>(null);
-
-  const getAudioContext = () => {
-    if (!audioCtxRef.current) {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtx) {
-        audioCtxRef.current = new AudioCtx();
-      }
-    }
-    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-    return audioCtxRef.current;
-  };
-
   const playKeyBeep = () => {
     if (!soundEnabled) return;
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
-    } catch {
-      // Audio fallback silent
-    }
+    playKeypadBeep();
   };
 
   const playUrnaConfirmation = () => {
     if (!soundEnabled) return;
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      // Synthesize the characteristic TSE Urna confirmation tone sequence
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      
-      // Sequence: 880Hz beep then sustained 1200Hz confirmation chime
-      osc.frequency.setValueAtTime(900, now);
-      osc.frequency.setValueAtTime(900, now + 0.15);
-      osc.frequency.setValueAtTime(1180, now + 0.2);
-
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.setValueAtTime(0.12, now + 0.2);
-      gain.gain.linearRampToValueAtTime(0.15, now + 0.35);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 1.25);
-    } catch {
-      // Audio fallback silent
-    }
+    playUrnaConfirmationTone();
   };
 
   const officesMap: Record<string, CandidateData> = {
